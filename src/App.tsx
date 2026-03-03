@@ -135,13 +135,13 @@ function App() {
             className="app-file-input"
             aria-label="Import JSON file"
           />
-          <button
+          {/* <button
             type="button"
             className="app-btn app-btn--secondary"
             onClick={onImportClick}
           >
             Import JSON
-          </button>
+          </button> */}
           <button
             type="button"
             className="app-btn app-btn--primary"
