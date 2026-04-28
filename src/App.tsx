@@ -1,163 +1,198 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { TranslationNode } from "./types/translation";
-import {
-  setByPath,
-  formatForExport,
-  validateTranslationJson,
-} from "./utils/jsonHelpers";
-import JsonTreeEditor from "./components/JsonTreeEditor";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
+type LanguageItem = {
+  id: number;
+  documentId: string;
+  language_code: string;
+  description: string;
+  translation: unknown;
+  translation_web: unknown;
+};
+
+type LanguagesResponse = {
+  data: LanguageItem[];
+  meta: {
+    pagination: {
+      page: number;
+      pageSize: number;
+      pageCount: number;
+      total: number;
+    };
+  };
+};
+
 function App() {
-  const [data, setData] = useState<TranslationNode | null>(null);
+  const env = import.meta.env as Record<string, string | undefined>;
+  const strapiUrl = env.VITE_STRAPI_URL ?? env.STRAPI_URL ?? "";
+  const strapiApiKey = env.VITE_STRAPI_API_KEY ?? env.STRAPI_API_KEY ?? "";
+
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    pageCount: 1,
+    total: 0,
+  });
 
   useEffect(() => {
-    fetch("/translation_template.json")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load template: ${res.status}`);
-        return res.json();
-      })
-      .then((json: unknown) => {
-        const validation = validateTranslationJson(json);
-        if (validation !== true) {
-          setError(validation.error);
-          return;
-        }
-        setData(json as TranslationNode);
-        setError(null);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoaded(true));
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+    }, 400);
 
-  const onUpdate = useCallback((path: string[], value: string) => {
-    setData((prev) => {
-      if (!prev) return prev;
-      return setByPath(prev, path, value);
-    });
-  }, []);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
 
-  const onExportDownload = useCallback(() => {
-    if (!data) return;
-    const blob = new Blob([formatForExport(data)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "translation_updated.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [data]);
-
-  const onCopyClipboard = useCallback(async () => {
-    if (!data) return;
-    try {
-      await navigator.clipboard.writeText(formatForExport(data));
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2000);
-    } catch {
-      setError("Failed to copy to clipboard.");
+  useEffect(() => {
+    if (!strapiUrl || !strapiApiKey) {
+      setError("Missing STRAPI_URL or STRAPI_API_KEY in .env.");
+      return;
     }
-  }, [data]);
 
-  const onImportClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+    const controller = new AbortController();
 
-  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
+    const fetchLanguages = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        const json = JSON.parse(reader.result as string) as unknown;
-        const validation = validateTranslationJson(json);
-        if (validation !== true) {
-          setError(validation.error);
-          return;
+        const params = new URLSearchParams({
+          "pagination[page]": String(page),
+          "pagination[pageSize]": String(pageSize),
+        });
+
+        if (search) {
+          params.append("filters[$or][0][language_code][$containsi]", search);
+          params.append("filters[$or][1][description][$containsi]", search);
         }
-        setData(json as TranslationNode);
-        setError(null);
-      } catch {
-        setError("Invalid JSON in file.");
+
+        const url = `${strapiUrl.replace(/\/$/, "")}/api/languages?${params.toString()}`;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${strapiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to load languages (${res.status})`);
+        }
+
+        const payload = (await res.json()) as LanguagesResponse;
+        setLanguages(payload.data ?? []);
+        setPagination(
+          payload.meta?.pagination ?? { page, pageSize, pageCount: 1, total: 0 },
+        );
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setError((err as Error).message);
+          setLanguages([]);
+        }
+      } finally {
+        setLoading(false);
       }
     };
-    reader.readAsText(file);
-    e.target.value = "";
-  }, []);
 
-  if (!loaded) {
-    return (
-      <div className="app">
-        <div className="app-card">
-          <p className="app-message">Loading translation template…</p>
-        </div>
-      </div>
-    );
-  }
+    fetchLanguages();
 
-  if (error && !data) {
-    return (
-      <div className="app">
-        <div className="app-card app-card--error">
-          <h1 className="app-title">Translation Editor</h1>
-          <p className="app-message app-message--error">{error}</p>
-        </div>
-      </div>
-    );
-  }
+    return () => controller.abort();
+  }, [page, pageSize, search, strapiApiKey, strapiUrl]);
+
+  const pageInfo = useMemo(() => {
+    if (pagination.total === 0) return "No results";
+    return `Showing page ${pagination.page} of ${pagination.pageCount} (${pagination.total} total)`;
+  }, [pagination]);
+
+  const canGoPrev = page > 1;
+  const canGoNext = page < pagination.pageCount;
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title">Translation Editor</h1>
+        <h1 className="app-title">Languages Home</h1>
+        <p className="app-subtitle">Browse languages from your Strapi endpoint.</p>
       </header>
-      {error && (
-        <div className="app-banner app-banner--warning" role="alert">
-          {error}
-        </div>
-      )}
+
       <div className="app-card">
-        <div className="app-tree-wrap">
-          {data && <JsonTreeEditor data={data} onUpdate={onUpdate} />}
+        <section className="controls" aria-label="Request controls">
+          <label className="field">
+            <span>Search</span>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by language code or description"
+            />
+          </label>
+          <label className="field field--small">
+            <span>Page</span>
+            <input
+              type="number"
+              min={1}
+              value={page}
+              onChange={(e) => setPage(Math.max(1, Number(e.target.value) || 1))}
+            />
+          </label>
+          <label className="field field--small">
+            <span>Page size</span>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={pageSize}
+              onChange={(e) => {
+                const value = Math.max(1, Number(e.target.value) || 1);
+                setPage(1);
+                setPageSize(value);
+              }}
+            />
+          </label>
+        </section>
+
+        <div className="toolbar">
+          <p className="page-info">{pageInfo}</p>
+          <div className="toolbar-actions">
+            <button type="button" onClick={() => setPage((prev) => prev - 1)} disabled={!canGoPrev}>
+              Previous
+            </button>
+            <button type="button" onClick={() => setPage((prev) => prev + 1)} disabled={!canGoNext}>
+              Next
+            </button>
+          </div>
         </div>
-        <div className="app-actions">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={onFileChange}
-            className="app-file-input"
-            aria-label="Import JSON file"
-          />
-          {/* <button
-            type="button"
-            className="app-btn app-btn--secondary"
-            onClick={onImportClick}
-          >
-            Import JSON
-          </button> */}
-          <button
-            type="button"
-            className="app-btn app-btn--primary"
-            onClick={onExportDownload}
-            disabled={!data}
-          >
-            Download
-          </button>
-          <button
-            type="button"
-            className="app-btn app-btn--secondary"
-            onClick={onCopyClipboard}
-            disabled={!data}
-          >
-            {copyFeedback ? "Copied!" : "Copy to clipboard"}
-          </button>
+
+        {error && (
+          <div className="app-banner app-banner--warning" role="alert">
+            {error}
+          </div>
+        )}
+
+        <div className="grid" aria-live="polite">
+          {loading ? (
+            <p className="app-message">Loading languages...</p>
+          ) : languages.length === 0 ? (
+            <p className="app-message">No languages found.</p>
+          ) : (
+            languages.map((language) => (
+              <article key={language.id} className="language-card">
+                <h2 className="language-code">{language.language_code}</h2>
+                <p className="language-id">
+                  <strong>id:</strong> {language.documentId}
+                </p>
+                <p className="language-description">{language.description}</p>
+              </article>
+            ))
+          )}
         </div>
       </div>
     </div>

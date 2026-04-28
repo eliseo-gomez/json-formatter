@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "home": "Home",
+    "offers": "Offers",
+    "order": "Order",
+    "Find": "Find",
+    "Account": "Account"
+  },
+  "orderScreen": {
+    "title": "Order",
+    "tabs": {
+      "pickup": "Pickup",
+      "delivery": "Delivery"
+    },
+    "selectLocation": "Select Location",
+    "selectPickupMethod": "Select Pickup Method",
+    "pickupButton": "Start pickup Order",
+    "orderButton": "Order Now"
+  },
+  "locationViewScreen": {
+    "title": "Find Your Wendy's",
+    "searchLocationBox": "Search City, State or Zip",
+    "tabs": {
+      "nearby": "Nearby",
+      "yourLocation": "Your Location"
+    },
+    "nearbyEmptySaste": {
+      "title": "Uh-Oh!",
+      "description": "Looks like we couldn't find any Wendy's near you. Please try again with a different location."
+    },
+    "yourLocationEmptySaste": {
+      "title": "No faves!",
+      "description": "Add your favorite Wendy's locations to your account to easily find them next time.",
+      "loginButton": "Log In/Sign Up"
+    },
+    "resutlCard": {
+      "open": "Open",
+      "close": "Closes",
+      "miles": "miles",
+      "orderButton": "Order Here"
+    },
+    "categoryScreen": {
+      "title": "Categories",
+      "caloriesAdvice": "2,000 calories a day is used for general nutrition advice, but calorie needs vary. Nutrition for beverages is based on a standard ice fill. Price and participation may vary."
+    },
+    "accountScreen": {
+      "title": "Account",
+      "mobilePay": "Mobile Pay",
+      "favorites": "Favorites",
+      "notifications": "Notifications",
+      "history": "History",
+      "settings": "Settings",
+      "privacy": "Privacy",
+      "contactUs": "Contact Us"
+    }
+  }
+}
