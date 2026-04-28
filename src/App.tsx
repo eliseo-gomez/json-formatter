@@ -29,6 +29,9 @@ type LanguageDetailResponse = {
   data: LanguageItem | { id: number; documentId: string; attributes: LanguageItem };
 };
 
+type DetailsTab = "mobile" | "web";
+type AlertTone = "error" | "success" | "info";
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -55,7 +58,6 @@ function App() {
 
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -71,9 +73,15 @@ function App() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageItem | null>(null);
   const [translationData, setTranslationData] = useState<TranslationNode | null>(null);
+  const [translationWebData, setTranslationWebData] = useState<TranslationNode | null>(null);
+  const [activeTab, setActiveTab] = useState<DetailsTab>("mobile");
+  const [alertModal, setAlertModal] = useState<{ message: string; tone: AlertTone } | null>(null);
+
+  const showAlert = useCallback((message: string, tone: AlertTone) => {
+    setAlertModal({ message, tone });
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -86,7 +94,8 @@ function App() {
 
   useEffect(() => {
     if (!strapiUrl || !strapiApiKey) {
-      setError("Missing STRAPI_URL or STRAPI_API_KEY in .env.");
+      const message = "Missing STRAPI_URL or STRAPI_API_KEY in .env.";
+      showAlert(message, "error");
       return;
     }
 
@@ -94,7 +103,6 @@ function App() {
 
     const fetchLanguages = async () => {
       setLoading(true);
-      setError(null);
 
       try {
         const params = new URLSearchParams({
@@ -129,7 +137,8 @@ function App() {
         );
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          setError((err as Error).message);
+          const message = (err as Error).message;
+          showAlert(message, "error");
           setLanguages([]);
         }
       } finally {
@@ -140,12 +149,14 @@ function App() {
     fetchLanguages();
 
     return () => controller.abort();
-  }, [page, pageSize, search, strapiApiKey, strapiUrl]);
+  }, [page, pageSize, search, showAlert, strapiApiKey, strapiUrl]);
 
   useEffect(() => {
     if (selectedLanguageDocumentId === null) return;
     if (!strapiUrl || !strapiApiKey) {
-      setDetailsError("Missing STRAPI_URL or STRAPI_API_KEY in .env.");
+      const message = "Missing STRAPI_URL or STRAPI_API_KEY in .env.";
+      setDetailsError(message);
+      showAlert(message, "error");
       return;
     }
 
@@ -154,7 +165,7 @@ function App() {
     const fetchLanguageDetails = async () => {
       setDetailsLoading(true);
       setDetailsError(null);
-      setSaveMessage(null);
+      setActiveTab("mobile");
 
       try {
         const url = `${strapiUrl.replace(/\/$/, "")}/api/languages/${selectedLanguageDocumentId}`;
@@ -175,31 +186,54 @@ function App() {
         const normalized = normalizeLanguage(payload.data);
         setSelectedLanguage(normalized);
 
-        const rawTranslation = normalized.translation;
-        if (!isTranslationNodeEmpty(rawTranslation)) {
-          const validation = validateTranslationJson(rawTranslation);
-          if (validation !== true) {
-            throw new Error(validation.error);
+        const loadNodeWithFallback = async (
+          value: unknown,
+          templatePath: string,
+          templateLabel: string,
+        ) => {
+          if (!isTranslationNodeEmpty(value)) {
+            const validation = validateTranslationJson(value);
+            if (validation !== true) {
+              throw new Error(validation.error);
+            }
+            return value as TranslationNode;
           }
-          setTranslationData(rawTranslation as TranslationNode);
-          return;
-        }
 
-        const templateRes = await fetch("/translation_template.json", { signal: controller.signal });
-        if (!templateRes.ok) {
-          throw new Error(`Failed to load translation template (${templateRes.status})`);
-        }
-        const templateJson = (await templateRes.json()) as unknown;
-        const templateValidation = validateTranslationJson(templateJson);
-        if (templateValidation !== true) {
-          throw new Error(templateValidation.error);
-        }
-        setTranslationData(templateJson as TranslationNode);
+          const templateRes = await fetch(templatePath, { signal: controller.signal });
+          if (!templateRes.ok) {
+            throw new Error(`Failed to load ${templateLabel} (${templateRes.status})`);
+          }
+          const templateJson = (await templateRes.json()) as unknown;
+          const templateValidation = validateTranslationJson(templateJson);
+          if (templateValidation !== true) {
+            throw new Error(templateValidation.error);
+          }
+          return templateJson as TranslationNode;
+        };
+
+        const [mobileNode, webNode] = await Promise.all([
+          loadNodeWithFallback(
+            normalized.translation,
+            "/translation_template.json",
+            "translation template",
+          ),
+          loadNodeWithFallback(
+            normalized.translation_web,
+            "/translation_web_template.json",
+            "translation web template",
+          ),
+        ]);
+
+        setTranslationData(mobileNode);
+        setTranslationWebData(webNode);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          setDetailsError((err as Error).message);
+          const message = (err as Error).message;
+          setDetailsError(message);
+          showAlert(message, "error");
           setSelectedLanguage(null);
           setTranslationData(null);
+          setTranslationWebData(null);
         }
       } finally {
         setDetailsLoading(false);
@@ -209,28 +243,41 @@ function App() {
     fetchLanguageDetails();
 
     return () => controller.abort();
-  }, [selectedLanguageDocumentId, strapiApiKey, strapiUrl]);
+  }, [selectedLanguageDocumentId, showAlert, strapiApiKey, strapiUrl]);
 
-  const onDetailUpdate = useCallback((path: string[], value: string) => {
-    setTranslationData((prev) => {
-      if (!prev) return prev;
-      return setByPath(prev, path, value);
-    });
-  }, []);
+  const onDetailUpdate = useCallback(
+    (path: string[], value: string) => {
+      if (activeTab === "mobile") {
+        setTranslationData((prev) => {
+          if (!prev) return prev;
+          return setByPath(prev, path, value);
+        });
+        return;
+      }
+
+      setTranslationWebData((prev) => {
+        if (!prev) return prev;
+        return setByPath(prev, path, value);
+      });
+    },
+    [activeTab],
+  );
 
   const onBack = useCallback(() => {
     setSelectedLanguageDocumentId(null);
     setSelectedLanguage(null);
     setTranslationData(null);
+    setTranslationWebData(null);
     setDetailsError(null);
-    setSaveMessage(null);
+    setActiveTab("mobile");
   }, []);
 
   const onSave = useCallback(async () => {
-    if (!selectedLanguage || !translationData) return;
+    if (!selectedLanguage) return;
+    const dataToSave = activeTab === "mobile" ? translationData : translationWebData;
+    if (!dataToSave) return;
 
     setSaving(true);
-    setSaveMessage(null);
     setDetailsError(null);
 
     try {
@@ -243,7 +290,7 @@ function App() {
         },
         body: JSON.stringify({
           data: {
-            translation: translationData,
+            [activeTab === "mobile" ? "translation" : "translation_web"]: dataToSave,
           },
         }),
       });
@@ -252,13 +299,20 @@ function App() {
         throw new Error(`Failed to save translation (${res.status})`);
       }
 
-      setSaveMessage("Translation updated successfully.");
+      showAlert(
+        activeTab === "mobile"
+          ? "Localizations Mobile updated successfully."
+          : "Localization Web updated successfully.",
+        "success",
+      );
     } catch (err) {
-      setDetailsError((err as Error).message);
+      const message = (err as Error).message;
+      setDetailsError(message);
+      showAlert(message, "error");
     } finally {
       setSaving(false);
     }
-  }, [selectedLanguage, strapiApiKey, strapiUrl, translationData]);
+  }, [activeTab, selectedLanguage, showAlert, strapiApiKey, strapiUrl, translationData, translationWebData]);
 
   const pageInfo = useMemo(() => {
     if (pagination.total === 0) return "No results";
@@ -267,55 +321,104 @@ function App() {
 
   const canGoPrev = page > 1;
   const canGoNext = page < pagination.pageCount;
+  const activeTree = activeTab === "mobile" ? translationData : translationWebData;
+  const alertNode = alertModal ? (
+    <div className="alert-modal-backdrop" role="presentation" onClick={() => setAlertModal(null)}>
+      <div
+        className="alert-modal"
+        role="alertdialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="alert-modal__title">
+          {alertModal.tone === "error" ? "Error" : alertModal.tone === "success" ? "Success" : "Info"}
+        </h2>
+        <p className="alert-modal__message">{alertModal.message}</p>
+        <button type="button" className="alert-modal__close" onClick={() => setAlertModal(null)}>
+          Close
+        </button>
+      </div>
+    </div>
+  ) : null;
+  const savingNode = saving ? (
+    <div className="alert-modal-backdrop" role="presentation">
+      <div className="alert-modal" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <h2 className="alert-modal__title">Saving</h2>
+        <p className="alert-modal__message">Updating localization data...</p>
+      </div>
+    </div>
+  ) : null;
 
   if (selectedLanguageDocumentId !== null) {
     return (
-      <div className="app">
-        <header className="app-header">
-          <button type="button" className="back-btn" onClick={onBack}>
-            Back
-          </button>
-          <h1 className="app-title">{selectedLanguage?.description ?? "Language details"}</h1>
-          {selectedLanguage && (
-            <p className="app-subtitle">
-              {selectedLanguage.language_code} - {selectedLanguage.documentId}
-            </p>
-          )}
-        </header>
+      <>
+        <div className="app">
+          <header className="app-header">
+            <button type="button" className="back-btn" onClick={onBack}>
+              Back
+            </button>
+            <h1 className="app-title">{selectedLanguage?.description ?? "Language details"}</h1>
+            {selectedLanguage && (
+              <p className="app-subtitle">
+                {selectedLanguage.language_code} - {selectedLanguage.documentId}
+              </p>
+            )}
+          </header>
 
-        <div className="app-card">
-          {detailsLoading ? (
-            <p className="app-message">Loading details...</p>
-          ) : detailsError ? (
-            <div className="app-banner app-banner--warning" role="alert">
-              {detailsError}
-            </div>
-          ) : translationData ? (
-            <>
-              <div className="app-tree-wrap">
-                <JsonTreeEditor data={translationData} onUpdate={onDetailUpdate} />
-              </div>
-              <div className="details-actions">
-                <button type="button" onClick={onSave} disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                {saveMessage && <p className="save-message">{saveMessage}</p>}
-              </div>
-            </>
-          ) : (
-            <p className="app-message">No translation data available.</p>
-          )}
+          <div className="app-card">
+            {detailsLoading ? (
+              <p className="app-message">Loading details...</p>
+            ) : detailsError ? (
+              <p className="app-message">Unable to load details.</p>
+            ) : activeTree ? (
+              <>
+                <div className="tabs" role="tablist" aria-label="Localization tabs">
+                  <button
+                    type="button"
+                    className={`tab-btn ${activeTab === "mobile" ? "tab-btn--active" : ""}`}
+                    role="tab"
+                    aria-selected={activeTab === "mobile"}
+                    onClick={() => setActiveTab("mobile")}
+                  >
+                    Localizations Mobile
+                  </button>
+                  <button
+                    type="button"
+                    className={`tab-btn ${activeTab === "web" ? "tab-btn--active" : ""}`}
+                    role="tab"
+                    aria-selected={activeTab === "web"}
+                    onClick={() => setActiveTab("web")}
+                  >
+                    Localization Web
+                  </button>
+                </div>
+                <div className="app-tree-wrap">
+                  <JsonTreeEditor data={activeTree} onUpdate={onDetailUpdate} />
+                </div>
+                <div className="details-actions">
+                  <button type="button" onClick={onSave} disabled={saving}>
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="app-message">No translation data available.</p>
+            )}
+          </div>
         </div>
-      </div>
+        {savingNode}
+        {alertNode}
+      </>
     );
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1 className="app-title">Languages Home</h1>
-        <p className="app-subtitle">Browse languages from your Strapi endpoint.</p>
-      </header>
+    <>
+      <div className="app">
+        <header className="app-header">
+          <h1 className="app-title">Languages Home</h1>
+          <p className="app-subtitle">Browse languages from your Strapi endpoint.</p>
+        </header>
 
       <div className="app-card">
         <section className="controls" aria-label="Request controls">
@@ -365,12 +468,6 @@ function App() {
           </div>
         </div>
 
-        {error && (
-          <div className="app-banner app-banner--warning" role="alert">
-            {error}
-          </div>
-        )}
-
         <div className="grid" aria-live="polite">
           {loading ? (
             <p className="app-message">Loading languages...</p>
@@ -401,7 +498,10 @@ function App() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+      {savingNode}
+      {alertNode}
+    </>
   );
 }
 
