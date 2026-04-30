@@ -167,7 +167,6 @@
     "next": "Next",
     "sending": "Sending...",
     "sendError": "Something went wrong. Please try again.",
-
     "verifyHeading": "Let's check\nyour inbox.",
     "verifySentCodeIntro": "We sent a code to",
     "otpDigitA11y": "Verification code digit {{index}} of {{total}}",
@@ -182,7 +181,6 @@
     "invalidCodeToast": "Invalid code. Please try again.",
     "havingTrouble": "Having Trouble?",
     "havingTroubleA11y": "Having trouble? Contact support",
-
     "signupFirstNameLabel": "First Name",
     "signupLastNameLabel": "Last Name",
     "signupPhoneLabel": "Phone Number (Optional)",
@@ -200,7 +198,6 @@
     "signupTermsCheckboxA11y": "I agree to the Terms and Conditions and Privacy Policy",
     "signupSubmitting": "Signing Up...",
     "signupButton": "Sign Up",
-
     "welcomeHeading": "Welcome,\n{{name}}.",
     "welcomeGuestName": "Friend",
     "welcomeSubtitle": "Your fresh new Wendy's account is up and running. Give it a try.",
@@ -211,7 +208,6 @@
     "modalTitle": "Modal",
     "demoModalBody": "This is a modal",
     "demoModalGoHome": "Go to home screen",
-
     "homeQuickOrderTitle": "Start Order",
     "homeQuickOrderSubtitle": "Pickup or Delivery",
     "homeQuickOrderA11y": "Start order. Pickup or Delivery",
@@ -296,9 +292,12 @@
     "browseModalMessage": "If you're just browsing, you won't be able to start an order. To view and add items to your bag, continue to choose pickup or delivery.",
     "browseModalPrimary": "GO TO ORDER",
     "browseModalSecondary": "CONTINUE TO BROWSE",
+    "browseModalCloseA11y": "Close",
+    "browseModalCloseHintA11y": "Dismisses this dialog",
+    "orderPickupTabA11y": "Pickup ordering",
+    "orderDeliveryTabA11y": "Delivery ordering",
     "a11yStartOrderPickup": "Start pickup order",
     "a11yStartOrderDelivery": "Start delivery order",
-
     "pickupOptionDriveThru": "Drive Thru",
     "pickupOptionTakeAway": "Take away",
     "pickupOptionDineIn": "Dine in",
@@ -306,7 +305,6 @@
     "pickupStatusClosingSoon": "Closing Soon",
     "pickupStatusOpeningSoon": "Opening Soon",
     "pickupStatusClosed": "Closed",
-
     "bagTitle": "Your Bag",
     "bagEmptyTitle": "Your bag is empty",
     "bagEmptySubtitle": "Add something delicious to get started",
@@ -356,18 +354,15 @@
     "bagDecreaseQuantityA11y": "Decrease quantity for {{name}}",
     "bagIncreaseQuantityA11y": "Increase quantity for {{name}}",
     "bagQuantityValueA11y": "Quantity for {{name}}",
-
     "bagUpsellViewAllCloseA11y": "Close",
     "bagUpsellNoThanks": "No, Thanks",
     "bagUpsellNoThanksA11y": "No thanks, go back",
     "bagUpsellLoading": "Loading…",
     "bagUpsellEmpty": "No recommendations right now.",
-
     "crossSellTitle": "Good order. Now make it great.",
     "crossSellSubtitle": "You want it. We got it. Let's add it.",
     "crossSellAdd": "Add",
     "crossSellAddA11y": "Add {{name}}",
-
     "pickupConfirmationHeader": "Pickup @ {{address}}",
     "pickupConfirmationIllustrationA11y": "Carryout pickup illustration",
     "pickupConfirmationTitle": "It's almost that time",
@@ -377,7 +372,6 @@
     "pickupConfirmationViewReceipt": "View Receipt",
     "pickupConfirmationViewReceiptA11y": "View receipt",
     "pickupConfirmationStoreFallback": "Store location",
-
     "receiptScreenHeaderTitle": "Receipt",
     "receiptScreenNotFound": "Order not found",
     "receiptScreenYourReceipt": "Your Receipt",
