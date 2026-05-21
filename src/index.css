@@ -1,6 +1,13 @@
 /* Strapi v5 design tokens — https://github.com/strapi/design-system */
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -74,7 +81,7 @@
     --strapi-primary-700: #7b79ff;
 
     --strapi-neutral-0: #212134;
-    --strapi-neutral-100: #181826;
+    --strapi-neutral-100: #212134;
     --strapi-neutral-150: #32324d;
     --strapi-neutral-200: #4a4a6a;
     --strapi-neutral-300: #666687;
