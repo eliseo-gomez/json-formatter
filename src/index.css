@@ -1,25 +1,129 @@
+/* Strapi v5 design tokens — https://github.com/strapi/design-system */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  color-scheme: light;
+
+  /* Primary */
+  --strapi-primary-100: #f0f0ff;
+  --strapi-primary-200: #d9d8ff;
+  --strapi-primary-500: #7b79ff;
+  --strapi-primary-600: #4945ff;
+  --strapi-primary-700: #271fe0;
+
+  /* Neutral */
+  --strapi-neutral-0: #ffffff;
+  --strapi-neutral-100: #f6f6f9;
+  --strapi-neutral-150: #eaeaef;
+  --strapi-neutral-200: #dcdce4;
+  --strapi-neutral-300: #c0c0cf;
+  --strapi-neutral-400: #a5a5ba;
+  --strapi-neutral-500: #8e8ea9;
+  --strapi-neutral-600: #666687;
+  --strapi-neutral-700: #4a4a6a;
+  --strapi-neutral-800: #32324d;
+  --strapi-neutral-900: #212134;
+  --strapi-neutral-1000: #181826;
+
+  /* Semantic */
+  --strapi-success-100: #eafbe7;
+  --strapi-success-600: #328048;
+  --strapi-success-700: #2f6846;
+  --strapi-danger-100: #fcecea;
+  --strapi-danger-600: #d02b20;
+  --strapi-danger-700: #b72b1a;
+  --strapi-warning-100: #fdf4dc;
+  --strapi-warning-600: #d9822f;
+  --strapi-secondary-100: #eaf5ff;
+  --strapi-secondary-600: #0c75af;
+  --strapi-alternative-500: #ac73e6;
+
+  /* App semantic aliases */
+  --color-text: var(--strapi-neutral-800);
+  --color-text-secondary: var(--strapi-neutral-600);
+  --color-bg: var(--strapi-neutral-100);
+  --color-surface: var(--strapi-neutral-0);
+  --color-border: var(--strapi-neutral-200);
+  --color-border-strong: var(--strapi-neutral-300);
+  --color-primary: var(--strapi-primary-600);
+  --color-primary-hover: var(--strapi-primary-700);
+  --color-primary-subtle: var(--strapi-primary-100);
+  --color-focus-ring: rgba(73, 69, 255, 0.25);
+  --color-overlay: rgba(24, 24, 38, 0.55);
+  --color-tree-key: var(--strapi-secondary-600);
+  --color-tree-value: var(--strapi-danger-700);
+  --color-tree-input-bg: var(--strapi-neutral-100);
+  --color-hover: rgba(73, 69, 255, 0.08);
+  --shadow-card: 0 2px 12px rgba(33, 33, 52, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --strapi-primary-100: #181826;
+    --strapi-primary-200: #4a4a6a;
+    --strapi-primary-500: #4945ff;
+    --strapi-primary-600: #7b79ff;
+    --strapi-primary-700: #7b79ff;
+
+    --strapi-neutral-0: #212134;
+    --strapi-neutral-100: #181826;
+    --strapi-neutral-150: #32324d;
+    --strapi-neutral-200: #4a4a6a;
+    --strapi-neutral-300: #666687;
+    --strapi-neutral-400: #a5a5ba;
+    --strapi-neutral-500: #c0c0cf;
+    --strapi-neutral-600: #a5a5ba;
+    --strapi-neutral-700: #eaeaef;
+    --strapi-neutral-800: #ffffff;
+    --strapi-neutral-900: #ffffff;
+    --strapi-neutral-1000: #ffffff;
+
+    --strapi-success-100: #181826;
+    --strapi-success-600: #5cb176;
+    --strapi-success-700: #c6f0c2;
+    --strapi-danger-100: #181826;
+    --strapi-danger-600: #ee5e52;
+    --strapi-danger-700: #ee5e52;
+    --strapi-warning-100: #181826;
+    --strapi-warning-600: #f29d41;
+    --strapi-secondary-600: #66b7f1;
+    --strapi-alternative-500: #ac73e6;
+
+    --color-text: var(--strapi-neutral-800);
+    --color-text-secondary: var(--strapi-neutral-500);
+    --color-bg: var(--strapi-neutral-100);
+    --color-surface: var(--strapi-neutral-0);
+    --color-border: var(--strapi-neutral-200);
+    --color-border-strong: var(--strapi-neutral-300);
+    --color-primary: var(--strapi-primary-600);
+    --color-primary-hover: var(--strapi-primary-700);
+    --color-primary-subtle: var(--strapi-primary-200);
+    --color-focus-ring: rgba(123, 121, 255, 0.35);
+    --color-overlay: rgba(24, 24, 38, 0.72);
+    --color-tree-key: var(--strapi-secondary-600);
+    --color-tree-value: var(--strapi-warning-600);
+    --color-tree-input-bg: var(--strapi-neutral-150);
+    --color-hover: rgba(123, 121, 255, 0.12);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.35);
+  }
 }
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--color-primary);
   text-decoration: inherit;
 }
+
 a:hover {
-  color: #535bf2;
+  color: var(--color-primary-hover);
 }
 
 html,
@@ -37,6 +141,8 @@ body {
 body {
   margin: 0;
   min-width: 320px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
 }
 
 h1 {
@@ -45,33 +151,26 @@ h1 {
 }
 
 button {
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button:hover {
+  border-color: var(--color-primary);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

@@ -32,6 +32,28 @@ type LanguageDetailResponse = {
 type DetailsTab = "mobile" | "web";
 type AlertTone = "error" | "success" | "info";
 
+const LANGUAGE_DOCUMENT_ID_PARAM = "documentId";
+
+function getDocumentIdFromUrl(): string | null {
+  const id = new URLSearchParams(window.location.search).get(LANGUAGE_DOCUMENT_ID_PARAM);
+  return id?.trim() || null;
+}
+
+function setDocumentIdInUrl(documentId: string | null, method: "push" | "replace" = "push") {
+  const url = new URL(window.location.href);
+  if (documentId) {
+    url.searchParams.set(LANGUAGE_DOCUMENT_ID_PARAM, documentId);
+  } else {
+    url.searchParams.delete(LANGUAGE_DOCUMENT_ID_PARAM);
+  }
+  const href = `${url.pathname}${url.search}${url.hash}`;
+  if (method === "replace") {
+    window.history.replaceState(null, "", href);
+  } else {
+    window.history.pushState(null, "", href);
+  }
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -69,7 +91,12 @@ function App() {
     pageCount: 1,
     total: 0,
   });
-  const [selectedLanguageDocumentId, setSelectedLanguageDocumentId] = useState<string | null>(null);
+  const [selectedLanguageDocumentId, setSelectedLanguageDocumentId] = useState<string | null>(
+    () => getDocumentIdFromUrl(),
+  );
+  const [enteredViaDirectUrl, setEnteredViaDirectUrl] = useState(
+    () => getDocumentIdFromUrl() !== null,
+  );
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,6 +109,36 @@ function App() {
   const showAlert = useCallback((message: string, tone: AlertTone) => {
     setAlertModal({ message, tone });
   }, []);
+
+  const resetDetailsState = useCallback(() => {
+    setSelectedLanguage(null);
+    setTranslationData(null);
+    setTranslationWebData(null);
+    setDetailsError(null);
+    setActiveTab("mobile");
+  }, []);
+
+  const openLanguage = useCallback((documentId: string) => {
+    setEnteredViaDirectUrl(false);
+    setSelectedLanguageDocumentId(documentId);
+    if (getDocumentIdFromUrl() !== documentId) {
+      setDocumentIdInUrl(documentId);
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const documentId = getDocumentIdFromUrl();
+      setSelectedLanguageDocumentId(documentId);
+      if (!documentId) {
+        setEnteredViaDirectUrl(false);
+        resetDetailsState();
+      }
+    };
+
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, [resetDetailsState]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -264,13 +321,13 @@ function App() {
   );
 
   const onBack = useCallback(() => {
+    if (getDocumentIdFromUrl()) {
+      history.back();
+      return;
+    }
     setSelectedLanguageDocumentId(null);
-    setSelectedLanguage(null);
-    setTranslationData(null);
-    setTranslationWebData(null);
-    setDetailsError(null);
-    setActiveTab("mobile");
-  }, []);
+    resetDetailsState();
+  }, [resetDetailsState]);
 
   const onSave = useCallback(async () => {
     if (!selectedLanguage) return;
@@ -354,9 +411,11 @@ function App() {
       <>
         <div className="app">
           <header className="app-header">
-            <button type="button" className="back-btn" onClick={onBack}>
-              Back
-            </button>
+            {!enteredViaDirectUrl && (
+              <button type="button" className="back-btn" onClick={onBack}>
+                Back
+              </button>
+            )}
             <h1 className="app-title">{selectedLanguage?.description ?? "Language details"}</h1>
             {selectedLanguage && (
               <p className="app-subtitle">
@@ -480,11 +539,11 @@ function App() {
                 className="language-card"
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedLanguageDocumentId(language.documentId)}
+                onClick={() => openLanguage(language.documentId)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setSelectedLanguageDocumentId(language.documentId);
+                    openLanguage(language.documentId);
                   }
                 }}
               >
