@@ -1,3 +1,40 @@
+.access-denied {
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+}
+
+.access-denied__card {
+  width: min(480px, 100%);
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--strapi-danger-600);
+  border-radius: 4px;
+  padding: 2rem 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.access-denied__title {
+  margin: 0 0 0.75rem;
+  color: var(--strapi-danger-600);
+  font-size: 1.5rem;
+}
+
+.access-denied__message {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.access-denied__message code {
+  color: var(--color-text);
+  background: var(--color-tree-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.9em;
+}
+
 .app {
   width: 100%;
   max-width: 1100px;

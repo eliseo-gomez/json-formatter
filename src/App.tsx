@@ -33,6 +33,11 @@ type DetailsTab = "mobile" | "web";
 type AlertTone = "error" | "success" | "info";
 
 const LANGUAGE_DOCUMENT_ID_PARAM = "documentId";
+const ACCESS_KEY_PARAM = "accesskey";
+
+function getAccessKeyFromUrl(): string {
+  return new URLSearchParams(window.location.search).get(ACCESS_KEY_PARAM)?.trim() ?? "";
+}
 
 function getDocumentIdFromUrl(): string | null {
   const id = new URLSearchParams(window.location.search).get(LANGUAGE_DOCUMENT_ID_PARAM);
@@ -77,6 +82,13 @@ function App() {
   const env = import.meta.env as Record<string, string | undefined>;
   const strapiUrl = env.VITE_STRAPI_URL ?? env.STRAPI_URL ?? "";
   const strapiApiKey = env.VITE_STRAPI_API_KEY ?? env.STRAPI_API_KEY ?? "";
+  const editorPassphrase = env.JSON_EDITOR_PP ?? env.VITE_JSON_EDITOR_PP ?? "";
+
+  const [urlAccessKey, setUrlAccessKey] = useState(() => getAccessKeyFromUrl());
+  const hasAccess = useMemo(
+    () => Boolean(editorPassphrase) && urlAccessKey === editorPassphrase,
+    [editorPassphrase, urlAccessKey],
+  );
 
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -128,6 +140,7 @@ function App() {
 
   useEffect(() => {
     const syncFromUrl = () => {
+      setUrlAccessKey(getAccessKeyFromUrl());
       const documentId = getDocumentIdFromUrl();
       setSelectedLanguageDocumentId(documentId);
       if (!documentId) {
@@ -150,6 +163,8 @@ function App() {
   }, [searchInput]);
 
   useEffect(() => {
+    if (!hasAccess) return;
+
     if (!strapiUrl || !strapiApiKey) {
       const message = "Missing STRAPI_URL or STRAPI_API_KEY in .env.";
       showAlert(message, "error");
@@ -206,9 +221,10 @@ function App() {
     fetchLanguages();
 
     return () => controller.abort();
-  }, [page, pageSize, search, showAlert, strapiApiKey, strapiUrl]);
+  }, [hasAccess, page, pageSize, search, showAlert, strapiApiKey, strapiUrl]);
 
   useEffect(() => {
+    if (!hasAccess) return;
     if (selectedLanguageDocumentId === null) return;
     if (!strapiUrl || !strapiApiKey) {
       const message = "Missing STRAPI_URL or STRAPI_API_KEY in .env.";
@@ -300,7 +316,7 @@ function App() {
     fetchLanguageDetails();
 
     return () => controller.abort();
-  }, [selectedLanguageDocumentId, showAlert, strapiApiKey, strapiUrl]);
+  }, [hasAccess, selectedLanguageDocumentId, showAlert, strapiApiKey, strapiUrl]);
 
   const onDetailUpdate = useCallback(
     (path: string[], value: string) => {
@@ -405,6 +421,19 @@ function App() {
       </div>
     </div>
   ) : null;
+
+  if (!hasAccess) {
+    return (
+      <div className="app access-denied">
+        <div className="access-denied__card">
+          <h1 className="access-denied__title">Access error</h1>
+          <p className="access-denied__message">
+            A valid <code>accesskey</code> query parameter is required to open this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (selectedLanguageDocumentId !== null) {
     return (

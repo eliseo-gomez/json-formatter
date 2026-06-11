@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  envPrefix: ['VITE_', 'STRAPI_'],
+  envPrefix: ['VITE_', 'STRAPI_', 'JSON_EDITOR_'],
 })
