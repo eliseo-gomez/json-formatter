@@ -48,7 +48,13 @@
     "myAccount": {
       "pageTitle": "My Account",
       "loadingAria": "Loading profile",
-      "profileLoadFailed": "Could not load your profile."
+      "profileLoadFailed": "Could not load your profile.",
+      "deleteAccount": "DELETE ACCOUNT",
+      "deleteAccountModalTitle": "Delete your account?",
+      "deleteAccountModalBody": "Deleting your account removes all account information and cannot be undone.",
+      "deleteAccountModalCancel": "Cancel",
+      "deleteAccountModalContinue": "Continue",
+      "deleteAccountFailed": "Could not delete your account. Please try again."
     }
   },
   "footer": {
@@ -103,7 +109,7 @@
     "accountMenuA11y": "Account menu",
     "badgeOverflow": "99+",
     "cartBagEmptyA11y": "Your bag",
-    "cartBagWithTotalsA11y": "Your bag, {{count}} items, £{{total}} total",
+    "cartBagWithTotalsA11y": "Your bag, {{count}} items, {{total}} total",
     "checkoutSignInRequiredDescription": "Sign in is required to continue to checkout.",
     "rewardsSignIn": {
       "checkoutTagline": "Sign in to continue to checkout.",
@@ -132,7 +138,6 @@
     "findLinkLabel": "Find",
     "guestCheckoutLabel": "Guest Checkout",
     "helloGreeting": "Hello, {{name}}",
-    "itemAddedToBagDialogA11y": "Item added to bag: {{name}}",
     "logInLabel": "Log In",
     "mobileFindAWendysA11y": "Find a Wendy's",
     "mobileSignInBtnA11y": "Sign In",
@@ -163,7 +168,9 @@
     "emptySidebarTitle": "Find your Frosty place. Then start your order.",
     "mobileSheetToggleA11y": "Toggle locations sheet",
     "locationsCount": "{{count}} locations",
-    "storeListAriaLabel": "Store locations"
+    "storeListAriaLabel": "Store locations",
+    "orderHereButton": "Order here",
+    "orderHereLocationClosed": "This location is closed"
   },
   "menu": {
     "pageTitleA11y": "Menu",
@@ -176,6 +183,8 @@
     "fallbackCategoryTitle": "Category",
     "emptyCategoryMessage": "No items found for this category yet.",
     "viewItemPill": "View Item",
+    "priceUnavailable": "Price unavailable",
+    "priceLoading": "Loading price…",
     "viewItemCardAriaLabel": "{{label}}: {{name}}",
     "viewItemOverlay": "View item",
     "addToBag": "Add to bag",
@@ -188,7 +197,52 @@
     "metadataMainTitle": "Menu | Wendy's",
     "metadataMainDescription": "Browse the Wendy's menu",
     "metadataCategoryTitle": "{{category}} | Wendy's",
-    "metadataCategoryDescription": "Browse {{category}} items on the Wendy's menu"
+    "metadataCategoryDescription": "Browse {{category}} items on the Wendy's menu",
+    "offersPillLabel": "Offers",
+    "offersBannerHeading": "Offer",
+    "offersBannerApply": "Apply",
+    "offersBannerRemove": "Remove",
+    "offersBannerSignIn": "Sign In"
+  },
+  "offers": {
+    "sectionTitle": "Available Offers",
+    "rewardsLogoAlt": "Wendy's REWARDS",
+    "backToMenuAriaLabel": "Back to menu",
+    "backToOffersAriaLabel": "Back to offers",
+    "redeemPromoCode": "Redeem Promo Code",
+    "redeemLink": "Redeem",
+    "expiresPrefix": "Expires",
+    "expiresSoon": "Expires Soon",
+    "viewHistory": "View History",
+    "backToMenu": "Back",
+    "backToOffers": "Back",
+    "guestMessage": "Sign in to see offers available to your account.",
+    "guestSignIn": "Sign In",
+    "appliedOfferHeading": "Offer",
+    "removeOffer": "Remove",
+    "useInMobileOrder": "Use in Mobile Order",
+    "useInRestaurant": "Use in Restaurant",
+    "useInRestaurantComingSoon": "Coming soon",
+    "orderNow": "Order Now",
+    "notAvailableForDelivery": "Not available for delivery orders",
+    "replaceModalTitle": "Replace Offer?",
+    "replaceModalBody": "You already have an offer in your bag. Would you like to replace it?",
+    "replaceModalConfirm": "Replace",
+    "replaceModalCancel": "Cancel",
+    "redeem": {
+      "metadataTitle": "Redeem Promo Code | Wendy's",
+      "metadataDescription": "Enter your promotional offer code to redeem at Wendy's",
+      "backNavAriaLabel": "Back navigation",
+      "backLabel": "Back",
+      "pageTitle": "Redeem Promo Code",
+      "instructions": "Enter the letters and numbers exactly as they appear on the promotion.",
+      "fieldLabel": "Offer Code",
+      "fieldPlaceholder": "Enter Code Here",
+      "submitLabel": "Redeem Promo Code",
+      "invalidTitle": "That code can't be applied.",
+      "invalidDescription": "Please enter a valid promo code",
+      "dismissErrorA11y": "Dismiss promo code error"
+    }
   },
   "product": {
     "loading": "Loading product…",
@@ -209,10 +263,12 @@
     "ingredientsTab": "Ingredients",
     "ingredientsHeading": "Ingredients",
     "allergensHeading": "Allergens*",
-    "nutritionUnavailable": "Nutrition information is not available for this item.",
+    "nutritionGuidelineDailyKcal": "Adults need around 2000 kcal a day.",
+    "nutritionDisclaimerCrossContact": "* We provide known instances of allergens; however, cross contact is possible due to common handling and preparation areas in our restaurants. We are unable to guarantee that any menu item can be completely free of allergens.",
+    "nutritionDisclaimerCustomizations": "Nutrition values are for standard items and do not reflect customizations or changes to ingredients. Visit our <websiteLink>website</websiteLink> for full nutrition details.",
+    "nutritionNoInfoDisclaimer": "To review menu nutrition and allergen information, please visit our <websiteLink>website</websiteLink>.",
+    "ingredientsNoInfoDisclaimer": "To review all menu ingredients, please visit our <websiteLink>website</websiteLink>.",
     "nutritionDisclaimerP1": "2,000 calories a day is used for general nutrition advice, but calorie needs vary. Nutrition for beverages is based on a standard ice fill. Price and participation may vary.",
-    "nutritionDisclaimerP2": "* We provide known instances of allergens; however, cross contact is possible due to common handling and preparation areas in our restaurants. We are unable to guarantee that any menu item can be completely free of allergens.",
-    "noIngredients": "No ingredients information available.",
     "decreaseQuantityA11y": "Decrease quantity",
     "increaseQuantityA11y": "Increase quantity",
     "editCart": "Edit",
@@ -221,13 +277,12 @@
     "ingredientRemoveA11y": "Remove {{name}}",
     "modifierAddA11y": "Add {{name}}",
     "modifierRemoveA11y": "Remove {{name}}",
-    "modifierPriceDelta": "+${{price}}",
+    "modifierPriceDelta": "+£{{price}}",
     "comboStepBackAria": "Back to previous step",
     "comboStepBackLabel": "Back",
     "comboOptionSelectedA11y": "Selected: {{name}}",
     "comboOptionSelectA11y": "Select {{name}}",
-    "comboChoiceCaloriesSuffix": " | {{calories}} Cal",
-    "currencyAmountUsd": "${{amount}}"
+    "currencyAmount": "£{{amount}}"
   },
   "pickupMethod": {
     "modalTitle": "Pickup Method",
@@ -242,7 +297,7 @@
   "bag": {
     "pageHeading": "Your Bag",
     "emptyBody": "You have nothing in the bag just like your belly.",
-    "customBadge": "CUSTOM",
+    "customBadge": "Custom",
     "customItemBadgeA11y": "Custom item",
     "decreaseQtyForA11y": "Decrease quantity for {{name}}",
     "increaseQtyForA11y": "Increase quantity for {{name}}",
@@ -258,7 +313,8 @@
     "paymentButton": "Payment",
     "bigOrderTitle": "That's A Big Order",
     "bigOrderBody": "Please keep your order under {{currency}}{{amount}}.",
-    "bigOrderOkay": "Okay"
+    "bigOrderOkay": "Okay",
+    "offerQualificationHeading": "Add Items to Qualify"
   },
   "checkout": {
     "backToBagAriaLabel": "Back to bag",
@@ -324,5 +380,11 @@
     "addButton": "Add",
     "preparingBagModalTitle": "Preparing your bag",
     "preparingBagModalMessage": "Hang tight while we prepare your bag for you."
+  },
+  "toast": {
+    "itemAddedToBag": "Item added to bag.",
+    "checkoutAction": "Checkout",
+    "checkoutActionA11y": "Go to checkout",
+    "dismissToastA11y": "Dismiss notification"
   }
 }
