@@ -112,6 +112,7 @@ function App() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resettingTemplate, setResettingTemplate] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageItem | null>(null);
   const [translationData, setTranslationData] = useState<TranslationNode | null>(null);
   const [translationWebData, setTranslationWebData] = useState<TranslationNode | null>(null);
@@ -345,6 +346,50 @@ function App() {
     resetDetailsState();
   }, [resetDetailsState]);
 
+  const onResetToTemplate = useCallback(async () => {
+    const templatePath =
+      activeTab === "mobile"
+        ? "/translation_template.json"
+        : "/translation_web_template.json";
+    const templateLabel =
+      activeTab === "mobile" ? "translation template" : "translation web template";
+
+    setResettingTemplate(true);
+    setDetailsError(null);
+
+    try {
+      const templateRes = await fetch(templatePath);
+      if (!templateRes.ok) {
+        throw new Error(`Failed to load ${templateLabel} (${templateRes.status})`);
+      }
+
+      const templateJson = (await templateRes.json()) as unknown;
+      const templateValidation = validateTranslationJson(templateJson);
+      if (templateValidation !== true) {
+        throw new Error(templateValidation.error);
+      }
+
+      if (activeTab === "mobile") {
+        setTranslationData(templateJson as TranslationNode);
+      } else {
+        setTranslationWebData(templateJson as TranslationNode);
+      }
+
+      showAlert(
+        activeTab === "mobile"
+          ? "Localizations Mobile reset to default template."
+          : "Localization Web reset to default template.",
+        "success",
+      );
+    } catch (err) {
+      const message = (err as Error).message;
+      setDetailsError(message);
+      showAlert(message, "error");
+    } finally {
+      setResettingTemplate(false);
+    }
+  }, [activeTab, showAlert]);
+
   const onSave = useCallback(async () => {
     if (!selectedLanguage) return;
     const dataToSave = activeTab === "mobile" ? translationData : translationWebData;
@@ -481,11 +526,23 @@ function App() {
                   </button>
                 </div>
                 <div className="app-tree-wrap">
-                  <JsonTreeEditor data={activeTree} onUpdate={onDetailUpdate} />
+                  <JsonTreeEditor
+                    key={activeTab}
+                    data={activeTree}
+                    onUpdate={onDetailUpdate}
+                  />
                 </div>
                 <div className="details-actions">
-                  <button type="button" onClick={onSave} disabled={saving}>
+                  <button type="button" onClick={onSave} disabled={saving || resettingTemplate}>
                     {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    className="details-actions__secondary"
+                    onClick={onResetToTemplate}
+                    disabled={saving || resettingTemplate}
+                  >
+                    {resettingTemplate ? "Loading template..." : "Reset to template"}
                   </button>
                 </div>
               </>
