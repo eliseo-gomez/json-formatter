@@ -6,11 +6,13 @@ import TreeNode from "./TreeNode";
 interface JsonTreeEditorProps {
   data: TranslationNode;
   onUpdate: (path: string[], value: string) => void;
+  newPaths?: ReadonlySet<string>;
 }
 
 export default function JsonTreeEditor({
   data,
   onUpdate,
+  newPaths,
 }: JsonTreeEditorProps) {
   const [searchKey, setSearchKey] = useState("");
   const [searchContent, setSearchContent] = useState("");
@@ -72,6 +74,13 @@ export default function JsonTreeEditor({
         </p>
       )}
 
+      {newPaths && newPaths.size > 0 && (
+        <p className="tree-search__info tree-search__info--synced">
+          {newPaths.size} new node{newPaths.size === 1 ? "" : "s"} added from template
+          (highlighted in green).
+        </p>
+      )}
+
       <div className="json-tree-editor__tree" role="tree">
         {visibleEntries.map(([key, value]) => (
           <TreeNode
@@ -83,6 +92,7 @@ export default function JsonTreeEditor({
             searchKey={searchKey}
             searchContent={searchContent}
             stickyPaths={stickyPaths}
+            newPaths={newPaths}
           />
         ))}
       </div>

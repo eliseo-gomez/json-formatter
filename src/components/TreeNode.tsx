@@ -11,6 +11,7 @@ interface TreeNodeProps {
   searchKey?: string;
   searchContent?: string;
   stickyPaths?: ReadonlySet<string>;
+  newPaths?: ReadonlySet<string>;
 }
 
 export default function TreeNode({
@@ -21,15 +22,18 @@ export default function TreeNode({
   searchKey = "",
   searchContent = "",
   stickyPaths,
+  newPaths,
 }: TreeNodeProps) {
   const hasSearch = Boolean(searchKey.trim() || searchContent.trim());
   const [isOpen, setIsOpen] = useState(true);
+  const pathKey = path.join(".");
+  const isNewNode = Boolean(newPaths?.has(pathKey));
 
   useEffect(() => {
-    if (hasSearch) {
+    if (hasSearch || isNewNode) {
       setIsOpen(true);
     }
-  }, [hasSearch, searchKey, searchContent]);
+  }, [hasSearch, searchKey, searchContent, isNewNode]);
 
   const handleValueChange = useCallback(
     (newValue: string) => {
@@ -49,18 +53,18 @@ export default function TreeNode({
 
     return (
       <div
-        className={`tree-node tree-node--leaf${keyHighlighted || contentHighlighted ? " tree-node--match" : ""}`}
-        data-path={path.join(".")}
+        className={`tree-node tree-node--leaf${keyHighlighted || contentHighlighted ? " tree-node--match" : ""}${isNewNode ? " tree-node--new" : ""}`}
+        data-path={pathKey}
       >
         <span
-          className={`tree-node__key${keyHighlighted ? " tree-node__key--match" : ""}`}
+          className={`tree-node__key${keyHighlighted ? " tree-node__key--match" : ""}${isNewNode ? " tree-node__key--new" : ""}`}
           aria-hidden="true"
         >
           {name}
         </span>
         <input
           type="text"
-          className={`tree-node__value${contentHighlighted ? " tree-node__value--match" : ""}`}
+          className={`tree-node__value${contentHighlighted ? " tree-node__value--match" : ""}${isNewNode ? " tree-node__value--new" : ""}`}
           value={value}
           onChange={(e) => handleValueChange(e.target.value)}
           aria-label={`Edit value for ${name}`}
@@ -72,7 +76,7 @@ export default function TreeNode({
   const entries = Object.entries(value);
   return (
     <div
-      className="tree-node tree-node--branch"
+      className={`tree-node tree-node--branch${isNewNode ? " tree-node--new" : ""}`}
       role="treeitem"
       aria-expanded={isOpen}
     >
@@ -91,7 +95,7 @@ export default function TreeNode({
             hasSearch && matchesText(name, searchKey.trim())
               ? " tree-node__key--match"
               : ""
-          }`}
+          }${isNewNode ? " tree-node__key--new" : ""}`}
         >
           {name}
         </span>
@@ -108,6 +112,7 @@ export default function TreeNode({
               searchKey={searchKey}
               searchContent={searchContent}
               stickyPaths={stickyPaths}
+              newPaths={newPaths}
             />
           ))}
         </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import JsonTreeEditor from "./components/JsonTreeEditor";
 import type { TranslationNode } from "./types/translation";
 import { setByPath, validateTranslationJson } from "./utils/jsonHelpers";
+import { syncWithTemplate, countMissingTemplateNodes } from "./utils/syncWithTemplate";
 import "./App.css";
 
 type LanguageItem = {
@@ -112,11 +113,16 @@ function App() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [resettingTemplate, setResettingTemplate] = useState(false);
+  const [syncingTemplate, setSyncingTemplate] = useState(false);
+  const [syncedNewPaths, setSyncedNewPaths] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [templateUpdateCount, setTemplateUpdateCount] = useState(0);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageItem | null>(null);
   const [translationData, setTranslationData] = useState<TranslationNode | null>(null);
   const [translationWebData, setTranslationWebData] = useState<TranslationNode | null>(null);
   const [activeTab, setActiveTab] = useState<DetailsTab>("mobile");
+  const [isDirty, setIsDirty] = useState(false);
   const [alertModal, setAlertModal] = useState<{ message: string; tone: AlertTone } | null>(null);
 
   const showAlert = useCallback((message: string, tone: AlertTone) => {
@@ -129,7 +135,51 @@ function App() {
     setTranslationWebData(null);
     setDetailsError(null);
     setActiveTab("mobile");
+    setSyncedNewPaths(new Set());
+    setTemplateUpdateCount(0);
+    setIsDirty(false);
   }, []);
+
+  const checkTemplateUpdates = useCallback(
+    async (tab: DetailsTab, currentData: TranslationNode | null, notify: boolean) => {
+      if (!currentData) {
+        setTemplateUpdateCount(0);
+        return 0;
+      }
+
+      const templatePath =
+        tab === "mobile"
+          ? "/translation_template.json"
+          : "/translation_web_template.json";
+
+      try {
+        const templateRes = await fetch(templatePath);
+        if (!templateRes.ok) return 0;
+
+        const templateJson = (await templateRes.json()) as unknown;
+        const templateValidation = validateTranslationJson(templateJson);
+        if (templateValidation !== true) return 0;
+
+        const missing = countMissingTemplateNodes(
+          currentData,
+          templateJson as TranslationNode,
+        );
+        setTemplateUpdateCount(missing);
+
+        if (notify && missing > 0) {
+          showAlert(
+            `There ${missing === 1 ? "is" : "are"} ${missing} new node${missing === 1 ? "" : "s"} in the template. Use "Sync With Template" to get the latest version without losing your existing translations.`,
+            "info",
+          );
+        }
+
+        return missing;
+      } catch {
+        return 0;
+      }
+    },
+    [showAlert],
+  );
 
   const openLanguage = useCallback((documentId: string) => {
     setEnteredViaDirectUrl(false);
@@ -240,6 +290,8 @@ function App() {
       setDetailsLoading(true);
       setDetailsError(null);
       setActiveTab("mobile");
+      setIsDirty(false);
+      setSyncedNewPaths(new Set());
 
       try {
         const url = `${strapiUrl.replace(/\/$/, "")}/api/languages/${selectedLanguageDocumentId}`;
@@ -300,6 +352,27 @@ function App() {
 
         setTranslationData(mobileNode);
         setTranslationWebData(webNode);
+
+        // Notify if the default (mobile) tab is behind the template
+        const mobileTemplateRes = await fetch("/translation_template.json", {
+          signal: controller.signal,
+        });
+        if (mobileTemplateRes.ok) {
+          const mobileTemplateJson = (await mobileTemplateRes.json()) as unknown;
+          if (validateTranslationJson(mobileTemplateJson) === true) {
+            const missing = countMissingTemplateNodes(
+              mobileNode,
+              mobileTemplateJson as TranslationNode,
+            );
+            setTemplateUpdateCount(missing);
+            if (missing > 0) {
+              showAlert(
+                `There ${missing === 1 ? "is" : "are"} ${missing} new node${missing === 1 ? "" : "s"} in the template. Use "Sync With Template" to get the latest version without losing your existing translations.`,
+                "info",
+              );
+            }
+          }
+        }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           const message = (err as Error).message;
@@ -321,6 +394,7 @@ function App() {
 
   const onDetailUpdate = useCallback(
     (path: string[], value: string) => {
+      setIsDirty(true);
       if (activeTab === "mobile") {
         setTranslationData((prev) => {
           if (!prev) return prev;
@@ -337,6 +411,25 @@ function App() {
     [activeTab],
   );
 
+  const requestTabChange = useCallback(
+    (nextTab: DetailsTab) => {
+      if (nextTab === activeTab) return;
+      if (isDirty) {
+        showAlert(
+          "You have unsaved changes. Please save before switching tabs.",
+          "error",
+        );
+        return;
+      }
+      setSyncedNewPaths(new Set());
+      setActiveTab(nextTab);
+
+      const nextData = nextTab === "mobile" ? translationData : translationWebData;
+      void checkTemplateUpdates(nextTab, nextData, true);
+    },
+    [activeTab, checkTemplateUpdates, isDirty, showAlert, translationData, translationWebData],
+  );
+
   const onBack = useCallback(() => {
     if (getDocumentIdFromUrl()) {
       history.back();
@@ -346,7 +439,10 @@ function App() {
     resetDetailsState();
   }, [resetDetailsState]);
 
-  const onResetToTemplate = useCallback(async () => {
+  const onSyncWithTemplate = useCallback(async () => {
+    const currentData = activeTab === "mobile" ? translationData : translationWebData;
+    if (!currentData) return;
+
     const templatePath =
       activeTab === "mobile"
         ? "/translation_template.json"
@@ -354,7 +450,7 @@ function App() {
     const templateLabel =
       activeTab === "mobile" ? "translation template" : "translation web template";
 
-    setResettingTemplate(true);
+    setSyncingTemplate(true);
     setDetailsError(null);
 
     try {
@@ -369,16 +465,19 @@ function App() {
         throw new Error(templateValidation.error);
       }
 
+      const synced = syncWithTemplate(currentData, templateJson as TranslationNode);
+
       if (activeTab === "mobile") {
-        setTranslationData(templateJson as TranslationNode);
+        setTranslationData(synced.data);
       } else {
-        setTranslationWebData(templateJson as TranslationNode);
+        setTranslationWebData(synced.data);
       }
+      setSyncedNewPaths(synced.newPaths);
+      setIsDirty(true);
+      setTemplateUpdateCount(0);
 
       showAlert(
-        activeTab === "mobile"
-          ? "Localizations Mobile reset to default template."
-          : "Localization Web reset to default template.",
+        `Synced with template: ${synced.addedCount} added, ${synced.removedCount} removed. Existing values were preserved.`,
         "success",
       );
     } catch (err) {
@@ -386,9 +485,9 @@ function App() {
       setDetailsError(message);
       showAlert(message, "error");
     } finally {
-      setResettingTemplate(false);
+      setSyncingTemplate(false);
     }
-  }, [activeTab, showAlert]);
+  }, [activeTab, showAlert, translationData, translationWebData]);
 
   const onSave = useCallback(async () => {
     if (!selectedLanguage) return;
@@ -423,6 +522,8 @@ function App() {
           : "Localization Web updated successfully.",
         "success",
       );
+      setIsDirty(false);
+      setSyncedNewPaths(new Set());
     } catch (err) {
       const message = (err as Error).message;
       setDetailsError(message);
@@ -483,7 +584,7 @@ function App() {
   if (selectedLanguageDocumentId !== null) {
     return (
       <>
-        <div className="app">
+        <div className="app app--details">
           <header className="app-header">
             {!enteredViaDirectUrl && (
               <button type="button" className="back-btn" onClick={onBack}>
@@ -498,7 +599,7 @@ function App() {
             )}
           </header>
 
-          <div className="app-card">
+          <div className="app-card app-card--details">
             {detailsLoading ? (
               <p className="app-message">Loading details...</p>
             ) : detailsError ? (
@@ -511,38 +612,50 @@ function App() {
                     className={`tab-btn ${activeTab === "mobile" ? "tab-btn--active" : ""}`}
                     role="tab"
                     aria-selected={activeTab === "mobile"}
-                    onClick={() => setActiveTab("mobile")}
+                    onClick={() => requestTabChange("mobile")}
                   >
                     Localizations Mobile
+                    {isDirty && activeTab === "mobile" ? " *" : ""}
                   </button>
                   <button
                     type="button"
                     className={`tab-btn ${activeTab === "web" ? "tab-btn--active" : ""}`}
                     role="tab"
                     aria-selected={activeTab === "web"}
-                    onClick={() => setActiveTab("web")}
+                    onClick={() => requestTabChange("web")}
                   >
                     Localization Web
+                    {isDirty && activeTab === "web" ? " *" : ""}
                   </button>
                 </div>
+                {templateUpdateCount > 0 && (
+                  <div className="template-update-banner" role="status">
+                    There {templateUpdateCount === 1 ? "is" : "are"}{" "}
+                    <strong>{templateUpdateCount}</strong> new node
+                    {templateUpdateCount === 1 ? "" : "s"} in the template. Use{" "}
+                    <strong>Sync With Template</strong> to get the latest version
+                    without losing your existing translations.
+                  </div>
+                )}
                 <div className="app-tree-wrap">
                   <JsonTreeEditor
                     key={activeTab}
                     data={activeTree}
                     onUpdate={onDetailUpdate}
+                    newPaths={syncedNewPaths}
                   />
                 </div>
                 <div className="details-actions">
-                  <button type="button" onClick={onSave} disabled={saving || resettingTemplate}>
+                  <button type="button" onClick={onSave} disabled={saving || syncingTemplate}>
                     {saving ? "Saving..." : "Save"}
                   </button>
                   <button
                     type="button"
                     className="details-actions__secondary"
-                    onClick={onResetToTemplate}
-                    disabled={saving || resettingTemplate}
+                    onClick={onSyncWithTemplate}
+                    disabled={saving || syncingTemplate}
                   >
-                    {resettingTemplate ? "Loading template..." : "Reset to template"}
+                    {syncingTemplate ? "Syncing..." : "Sync With Template"}
                   </button>
                 </div>
               </>
